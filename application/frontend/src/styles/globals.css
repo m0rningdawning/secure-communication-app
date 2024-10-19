@@ -9,7 +9,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #2b2d31;
+    /* --background: #2b2d31; */
+    --background: #001220;
     --foreground: #ededed;
   }
 }
@@ -89,4 +90,24 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Loading Spinner Fix needed*/
+
+.loading-spinner {
+  position: absolute;
+  top: 49%;
+  left: 49%;
+  transform: translate(-50%, -50%);
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #5e199b;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

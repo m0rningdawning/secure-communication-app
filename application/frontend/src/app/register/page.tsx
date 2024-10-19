@@ -41,8 +41,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="bg-[#424553] p-8 rounded-lg shadow-md w-full max-w-md">
+    <div className="flex items-center justify-center h-screen bg-[url('/imgs/login_bg_169.svg')] md:bg-[url('/imgs/login_bg_169.svg')] sm:bg-[url('/imgs/login_bg_916.svg')] bg-cover bg-center">
+      <div className="bg-[#001f53] p-8 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-4xl font-bold text-center mb-4 underline decoration-purple-600">
           Create an Account
         </h2>
