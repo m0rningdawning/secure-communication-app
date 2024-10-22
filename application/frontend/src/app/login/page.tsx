@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
@@ -11,6 +11,13 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/chat");
+    }
+  }, [router]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -19,10 +26,27 @@ export default function LoginPage() {
       return;
     }
 
-    if (email === "test@example.com" && password === "password123") {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setErrorMessage(data.message || "An error occurred. Please try again.");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
       router.push("/chat");
-    } else {
-      setErrorMessage("Invalid email or password.");
+    } catch (error) {
+      console.error("Login error:", error);
+      setErrorMessage("An unexpected error occurred. Please try again.");
     }
   };
 

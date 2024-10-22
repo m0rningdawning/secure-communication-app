@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
@@ -15,11 +15,18 @@ export default function RegisterPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/chat");
+    }
+  }, [router]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password || !confirmPassword) {
-      setErrorMessage("Please fill in all fields.");
+    if (!email || !userName || !password || !confirmPassword) {
+      setErrorMessage("Please fill out all fields.");
       return;
     }
 
@@ -28,15 +35,37 @@ export default function RegisterPage() {
       return;
     }
 
-    if (email === "newuser@example.com" && password === "password123") {
-      setSuccessMessage("Registration successful! Redirecting to login...");
-      setErrorMessage(null);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          username: userName,
+          password,
+        }),
+      });
 
-      setTimeout(() => {
-        router.push("/login");
-      }, 2000);
-    } else {
-      setErrorMessage("Failed to register. Please try again.");
+      const data = await response.json();
+
+      if (response.ok) {
+        setSuccessMessage("Registration successful! Redirecting to login...");
+        setErrorMessage(null);
+
+        setTimeout(() => {
+          router.push("/login");
+        }, 1000);
+      } else {
+        setErrorMessage(
+          data.message || "Failed to register. Please try again."
+        );
+      }
+    } catch (error) {
+      setErrorMessage(
+        "An error occurred during registration. Please try again."
+      );
     }
   };
 
@@ -56,7 +85,7 @@ export default function RegisterPage() {
               Username
             </label>
             <input
-              type="username"
+              type="text"
               id="username"
               value={userName}
               onChange={(e) => setUserName(e.target.value)}
