@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { HiLogout, HiUserGroup } from "react-icons/hi";
 
 export default function ChatPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,73 +24,96 @@ export default function ChatPage() {
   };
 
   return isAuthenticated ? (
-    <div className="flex h-screen bg-[#00172e]">
-      <aside className="hidden md:flex flex-col w-1/4 bg-[#00172e] shadow-lg p-4">
-        <h2 className="text-xl font-bold mb-4">Users</h2>
-        <button className="text-blue-600 mb-2">Add Recipient</button>
-        <ul className="flex-1 overflow-y-auto space-y-2">
-          <li className="p-2 rounded bg-[#5e199b]">User 1</li>
-          <li className="p-2 rounded bg-[#5e199b]">User 2</li>
-          <li className="p-2 rounded bg-[#5e199b]">User 3</li>
-        </ul>
-      </aside>
+    <div className="flex flex-col h-screen bg-[#00172e] relative">
+      <header className="flex items-center justify-between p-4 bg-[#001846] text-white">
+        <div className="text-lg font-semibold">ChatApp</div>
+        <button
+          onClick={logout}
+          className="flex items-center space-x-2 text-sm hover:underline"
+        >
+          <HiLogout className="w-5 h-5" />
+          <span>Logout</span>
+        </button>
+      </header>
 
-      <main className="flex-1 flex flex-col">
-        <header className="flex items-center justify-between bg-[#001f53] text-white p-4 shadow">
-          <div className="text-2xl font-bold">ChatApp</div>
-          <button
-            onClick={logout}
-            className="px-3 py-1 rounded bg-[#5e199b] hover:bg-[#4e1c7a]"
-          >
-            Logout
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="hidden lg:flex flex-col w-64 bg-[#00236a] p-4">
+          <h2 className="text-lg font-semibold mb-4">Users</h2>
+          <ul className="flex-1 overflow-y-auto space-y-2">
+            <li className="p-2 bg-[#5e199b] rounded hover:bg-[#6d2aa8] cursor-pointer">
+              User 1
+            </li>
+            <li className="p-2 bg-[#5e199b] rounded hover:bg-[#6d2aa8] cursor-pointer">
+              User 2
+            </li>
+            <li className="p-2 bg-[#5e199b] rounded hover:bg-[#6d2aa8] cursor-pointer">
+              User 3
+            </li>
+          </ul>
+          <button className="flex items-center mt-4 px-3 py-2 bg-[#5e199b] text-white rounded hover:bg-[#6d2aa8]">
+            <HiUserGroup className="w-5 h-5 mr-2" />
+            Add Recipient
           </button>
-        </header>
+        </aside>
 
-        <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-[url('/imgs/chat-alt.svg')] bg-cover bg-center">
-          <div className="self-start bg-[#3f1067] p-3 rounded-lg max-w-sm">
-            Message from User 1
+        <main className="flex flex-col flex-1 bg-center bg-no-repeat bg-cover bg-[url('/imgs/chat2_blur.png')]">
+          <div className="flex items-center justify-between p-4 bg-blue-900 text-white">
+            <h2 className="text-lg font-semibold">Chat with User 1</h2>
           </div>
-          <div className="self-end bg-[#3f1067] p-3 rounded-lg max-w-sm">
-            My message
-          </div>
-        </div>
 
-      <footer className="p-4 bg-[#001f53]">
-          <div className="flex">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="self-start max-w-xs p-2 bg-[#002a54] rounded-lg">
+              Hello!
+            </div>
+            <div className="self-end max-w-xs p-2 bg-blue-700 text-white rounded-lg">
+              Hi there!
+            </div>
+          </div>
+
+          <div className="p-4 bg-blue-900">
             <input
               type="text"
-              placeholder="Type a message..."
-              className="flex-1 p-2 rounded-l-lg bg-[#5e199b]"
+              placeholder="Type your message..."
+              className="w-full p-2 rounded-lg bg-[#00172e] focus:outline-none focus:ring focus:ring-blue-300"
             />
-            <button className="px-4 py-2 bg-[#5e199b] hover:bg-[#4e1c7a]  rounded-r-lg">
-              Send
-            </button>
           </div>
-        </footer>
-      </main>
+        </main>
+      </div>
 
+      {isDrawerOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setIsDrawerOpen(false)}
+        ></div>
+      )}
       <div
         className={`fixed inset-y-0 right-0 transform ${
           isDrawerOpen ? "translate-x-0" : "translate-x-full"
-        } transition-transform duration-300 bg-[#00172e] w-3/4 md:hidden`}
+        } transition-transform duration-300 bg-[#00172e] w-3/4 md:hidden z-50`}
       >
-        <header className="flex items-center justify-between p-4 bg-[#00172e] border-b">
+        <header className="flex items-center justify-between p-4 bg-[#00236a]">
           <h2 className="text-xl font-bold">Users</h2>
           <button onClick={() => setIsDrawerOpen(false)}>Close</button>
         </header>
         <ul className="p-4 space-y-2">
-          <li className="p-2 rounded bg-blue-100">User 1</li>
-          <li className="p-2 rounded bg-blue-100">User 2</li>
-          <li className="p-2 rounded bg-blue-100">User 3</li>
+          <li className="p-2 rounded bg-[#5e199b]">User 1</li>
+          <li className="p-2 rounded bg-[#5e199b]">User 2</li>
+          <li className="p-2 rounded bg-[#5e199b]">User 3</li>
         </ul>
+        <button className="flex items-center mt-4 px-3 py-2 bg-[#5e199b] text-white rounded hover:bg-[#6d2aa8]">
+          <HiUserGroup className="w-5 h-5 mr-2" />
+          Add Recipient
+        </button>
       </div>
 
-      <button
-        onClick={() => setIsDrawerOpen(true)}
-        className="fixed bottom-4 right-4 md:hidden p-3 rounded-full bg-blue-600 text-white shadow-lg"
-      >
-        Users
-      </button>
+      {!isDrawerOpen && (
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="fixed bottom-24 right-6 md:hidden p-3 rounded-full bg-blue-600 text-white shadow-lg z-50"
+        >
+          Users
+        </button>
+      )}
     </div>
   ) : null;
 }
