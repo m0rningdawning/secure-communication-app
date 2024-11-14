@@ -11,7 +11,8 @@ export function middleware(request: NextRequest) {
 
       if (
         request.nextUrl.pathname === "/login" ||
-        request.nextUrl.pathname === "/register"
+        request.nextUrl.pathname === "/register" ||
+        request.nextUrl.pathname === "/landing"
       ) {
 
         return NextResponse.redirect(new URL("/chat", request.url));

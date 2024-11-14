@@ -57,7 +57,7 @@ export default function ChatPage() {
         </aside>
 
         <main className="flex flex-col flex-1 bg-center bg-no-repeat bg-cover bg-[url('/imgs/chat2_blur.png')]">
-          <div className="flex items-center justify-between p-4 bg-blue-900 text-white">
+          <div className="flex items-center justify-between p-4 bg-blue-900 text-white bg-opacity-90 backdrop-blur-lg shadow-md">
             <h2 className="text-lg font-semibold">Chat with User 1</h2>
           </div>
 
