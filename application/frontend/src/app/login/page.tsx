@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useState, FormEvent, useEffect } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginPage() {
@@ -43,6 +43,8 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem("userId", data.userId);
+      console.log(data.userId);
       router.push("/chat");
     } catch (error) {
       console.error("Login error:", error);
@@ -54,7 +56,7 @@ export default function LoginPage() {
     <div className="flex items-center justify-center h-screen bg-[url('/imgs/login_bg_169.svg')] md:bg-[url('/imgs/login_bg_169.svg')] sm:bg-[url('/imgs/login_bg_916.svg')] bg-cover bg-center">
       <div className="bg-[#001f53] p-8 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-4xl font-bold text-center mb-4 underline decoration-purple-600">
-          Secure Chat
+          <span className="text-purple-600">Secure</span> Chat
         </h2>
 
         <form onSubmit={handleSubmit}>
@@ -71,7 +73,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block w-full px-3 py-2 text-[#2b2d31] border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-              placeholder="you@example.com"
+              placeholder="youremail@example.com"
               required
             />
           </div>
@@ -110,7 +112,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="mt-3 w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200 transform hover:scale-105 focus:scale-105"
+            className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200 transform hover:scale-105 focus:scale-105"
           >
             Login
           </button>

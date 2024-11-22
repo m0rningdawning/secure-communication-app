@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       JSON.stringify({
         message: 'Logged in successfully',
         token,
-        // publicKey: user.publicKey,
+        userId: user.id,
       }),
       { status: 200 }
     );

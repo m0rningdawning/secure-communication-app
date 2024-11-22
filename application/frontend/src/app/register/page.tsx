@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useState, FormEvent, useEffect } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { generateKeyPair } from "@/lib/cryptoUtils";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState<string>("");
@@ -36,6 +37,8 @@ export default function RegisterPage() {
     }
 
     try {
+      const { publicKey, privateKey } = await generateKeyPair();
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -45,12 +48,14 @@ export default function RegisterPage() {
           email,
           username: userName,
           password,
+          publicKey,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        localStorage.setItem("privateKey", privateKey);
         setSuccessMessage("Registration successful! Redirecting to login...");
         setErrorMessage(null);
 
@@ -63,6 +68,7 @@ export default function RegisterPage() {
         );
       }
     } catch (error) {
+      console.log(error);
       setErrorMessage(
         "An error occurred during registration. Please try again."
       );
@@ -107,7 +113,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block w-full px-3 py-2 text-[#2b2d31] border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
-              placeholder="you@example.com"
+              placeholder="youremail@example.com"
               required
             />
           </div>
@@ -178,7 +184,7 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="mt-3 w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200 transform hover:scale-105 focus:scale-105"
+            className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200 transform hover:scale-105 focus:scale-105"
           >
             Register
           </button>

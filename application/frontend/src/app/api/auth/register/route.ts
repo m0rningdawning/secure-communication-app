@@ -1,15 +1,14 @@
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { generateKeyPair } from '@/app/api/keygen/keygen';
 
 export async function POST(req: Request) {
   try {
-    const { username, email, password } = await req.json();
+    const { username, email, password, publicKey } = await req.json();
 
-    if (!username || !email || !password) {
+    if (!username || !email || !password || !publicKey) {
       return new Response(
         JSON.stringify({
-          message: 'All fields are required: username, password, and email',
+          message: 'All fields are required: username, password, email, and publicKey',
         }),
         { status: 400 }
       );
@@ -35,8 +34,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const { publicKey } = await generateKeyPair();
-    
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
@@ -62,11 +59,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-  return new Response(
-    JSON.stringify({ message: 'OK' }),
-    { status: 200 }
-  );
 }

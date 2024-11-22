@@ -11,14 +11,26 @@ export default function LandingPage() {
 
   return (
     <div className="relative flex flex-col items-center justify-center h-screen bg-cover bg-center bg-[url('/imgs/login_bg_169.svg')] md:bg-[url('/imgs/login_bg_169.svg')] sm:bg-[url('/imgs/login_bg_916.svg')]">
-      
       <header className="absolute top-0 left-0 w-full p-4 flex justify-between items-center bg-opacity-90 backdrop-blur-lg shadow-md">
-        <h1 className="text-2xl font-bold text-white cursor-pointer" onClick={() => router.push("/")}>
+        <h1
+          className="text-2xl font-bold text-white cursor-pointer"
+          onClick={() => router.push("/")}
+        >
           <span className="text-purple-600">Secure</span> Chat
         </h1>
         <div className="space-x-4">
-          <button onClick={navigateToLogin} className="text-white hover:underline">Login</button>
-          <button onClick={navigateToRegister} className="text-white hover:underline">Register</button>
+          <button
+            onClick={navigateToLogin}
+            className="text-white hover:underline"
+          >
+            Login
+          </button>
+          <button
+            onClick={navigateToRegister}
+            className="text-white hover:underline"
+          >
+            Register
+          </button>
         </div>
       </header>
 
@@ -27,7 +39,8 @@ export default function LandingPage() {
           Welcome to Secure Chat
         </h2>
         <p className="text-xl text-gray-200 max-w-md mx-auto">
-          Connect securely with your friends and colleagues with end-to-end encrypted messages.
+          Connect securely with your friends and colleagues with end-to-end
+          encrypted messages.
         </p>
         <div className="flex justify-center space-x-6 mt-4">
           <button
@@ -48,7 +61,7 @@ export default function LandingPage() {
       </main>
 
       <footer className="absolute bottom-0 text-gray-400 text-center py-4">
-        <p>&copy; {new Date().getFullYear()} Secure Chat. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} Secure Chat (For Now). KUT</p>
       </footer>
     </div>
   );

@@ -2,7 +2,6 @@ import { subtle } from 'crypto';
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const byteArray = new Uint8Array(buffer);
-  //@ts-expect-error (byte array is 100% present *i guess xP*)
   const binary = String.fromCharCode(...byteArray);
   return Buffer.from(binary, 'binary').toString('base64');
 }

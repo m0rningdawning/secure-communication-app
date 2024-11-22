@@ -29,7 +29,7 @@ model User {
   createdAt        DateTime       @default(now())
   messagesSent     Message[]      @relation("MessagesSent")
   messagesReceived Message[]      @relation("MessagesReceived")
-  conversations    Conversation[]
+  conversations    Conversation[] @relation("UserConversations")
 }
 
 model Message {
@@ -42,13 +42,13 @@ model Message {
   status         MessageStatus @default(SENT)
   sender         User          @relation("MessagesSent", fields: [senderId], references: [id])
   receiver       User          @relation("MessagesReceived", fields: [receiverId], references: [id])
-  Conversation   Conversation? @relation(fields: [conversationId], references: [id])
-  conversationId Int?
+  conversation   Conversation  @relation(fields: [conversationId], references: [id])
+  conversationId Int
 }
 
 model Conversation {
   id           Int       @id @default(autoincrement())
-  participants User[]
+  participants User[]    @relation("UserConversations")
   messages     Message[]
   createdAt    DateTime  @default(now())
 }
