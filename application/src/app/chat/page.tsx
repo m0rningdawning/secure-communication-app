@@ -1,12 +1,26 @@
 "use client";
 
+import { encryptMessage, decryptMessage } from "@/lib/cryptoUtils";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HiLogout, HiUserGroup, HiTrash } from "react-icons/hi";
-import { encryptMessage, decryptMessage } from "@/lib/cryptoUtils";
+import { io } from "socket.io-client";
 
-// TODO
-// Change the sending logic
+const socket = io("localhost:3000", {
+  path: "/api/socket",
+  transports: ["websocket"],
+  timeout: 30000,
+});
+
+// const PORT = 8888;
+
+// const socket = io(":3001", {
+//   path: "/api/socket",
+//   transports: ["websocket"],
+//   reconnection: true,
+//   reconnectionAttempts: 5,
+//   reconnectionDelay: 1000,
+// });
 
 export default function ChatPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -24,19 +38,34 @@ export default function ChatPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
-    if (!token || !userId) {
+    const email = localStorage.getItem("email");
+    if (!token || !userId || !email) {
       router.push("/login");
     } else {
       setIsAuthenticated(true);
       fetchConversations(userId);
+      socket.emit("join", email);
     }
+
+    socket.on("receiveMessage", (message) => {
+      receiveMessage(message.content, message.senderId);
+    });
+
+    socket.on("connect_error", async (err) => {
+      console.log(`connect_error due to ${err.message}`);
+      await fetch("/api/socket");
+    });
+
+    return () => {
+      socket.off("receiveMessage");
+    };
   }, [router]);
 
   const fetchConversations = async (userId) => {
     try {
-      const response = await fetch('/api/conversations', {
+      const response = await fetch("/api/conversations", {
         headers: {
-          'x-user-id': userId,
+          "x-user-id": userId,
         },
       });
       const data = await response.json();
@@ -53,6 +82,7 @@ export default function ChatPage() {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
+    localStorage.removeItem("email");
     router.push("/login");
   };
 
@@ -60,17 +90,20 @@ export default function ChatPage() {
     const userId = localStorage.getItem("userId");
     try {
       const response = await fetch(`/api/conversations`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ userId, recipientEmail }),
       });
       const data = await response.json();
       if (response.ok) {
-        setRecipientPublicKey(data.conversation.participants.find(p => p.id !== parseInt(userId)).publicKey);
-        setRecipientUsername(data.conversation.participants.find(p => p.id !== parseInt(userId)).username);
+        const recipient = data.conversation.participants.find(
+          (p) => p.email !== recipientEmail
+        );
+        setRecipientPublicKey(recipient.publicKey);
+        setRecipientUsername(recipient.username);
         setCurrentConversationId(data.conversation.id);
         setShowAddRecipientModal(false);
         fetchConversations(userId);
@@ -85,16 +118,16 @@ export default function ChatPage() {
   const deleteConversation = async (conversationId) => {
     try {
       const response = await fetch(`/api/conversations`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ conversationId }),
       });
       const data = await response.json();
       if (response.ok) {
-        setConversations(conversations.filter(c => c.id !== conversationId));
+        setConversations(conversations.filter((c) => c.id !== conversationId));
         setCurrentConversationId(null);
         setMessages([]);
         setRecipientUsername("");
@@ -107,38 +140,59 @@ export default function ChatPage() {
   };
 
   const sendMessage = async (message: string) => {
+    const userId = parseInt(localStorage.getItem("userId"));
+    const email = localStorage.getItem("email");
+
     if (!recipientPublicKey || !currentConversationId) {
       console.error("Recipient public key or conversation ID not set");
       return;
     }
 
-    const encryptedMessage = await encryptMessage(recipientPublicKey, message);
+    try {
+      const encryptedMessage = await encryptMessage(
+        recipientPublicKey,
+        message
+      );
 
-    const response = await fetch('/api/messages/send', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify({ conversationId: currentConversationId, message: encryptedMessage }),
-    });
+      socket.emit("sendMessage", {
+        conversationId: currentConversationId,
+        message: encryptedMessage,
+        senderId: userId,
+        recipientEmail,
+      });
 
-    const data = await response.json();
-    if (!response.ok) {
-      console.error(data.message);
-    } else {
-      setMessages([...messages, { senderId: 1, content: encryptedMessage }]);
+      setMessages([
+        ...messages,
+        {
+          senderEmail: email,
+          receiverEmail: recipientEmail,
+          content: encryptedMessage,
+        },
+      ]);
+    } catch (error) {
+      console.error("Error encrypting message:", error);
     }
   };
 
-  const receiveMessage = async (encryptedMessage: string) => {
-    const privateKey = localStorage.getItem('privateKey');
+  const receiveMessage = async (encryptedMessage: string, senderId: number) => {
+    const privateKey = localStorage.getItem("privateKey");
     if (!privateKey) {
-      throw new Error('Private key not found');
+      throw new Error("Private key not found");
     }
 
-    const message = await decryptMessage(privateKey, encryptedMessage);
-    setMessages([...messages, { senderId: 2, content: message }]);
+    try {
+      const message = await decryptMessage(privateKey, encryptedMessage);
+      setMessages([
+        ...messages,
+        {
+          senderId,
+          receiverEmail: localStorage.getItem("email"),
+          content: message,
+        },
+      ]);
+    } catch (error) {
+      console.error("Error decrypting message:", error);
+    }
   };
 
   return isAuthenticated ? (
@@ -166,11 +220,21 @@ export default function ChatPage() {
                 className="p-2 bg-[#5e199b] rounded hover:bg-[#6d2aa8] cursor-pointer flex justify-between items-center"
                 onClick={() => {
                   setCurrentConversationId(conversation.id);
-                  setRecipientUsername(conversation.participants.find(p => p.id !== parseInt(localStorage.getItem("userId"))).username);
+                  const recipient = conversation.participants.find(
+                    (p) => p.email !== localStorage.getItem("email")
+                  );
+                  setRecipientPublicKey(recipient.publicKey);
+                  setRecipientUsername(recipient.username);
                   setMessages(conversation.messages);
                 }}
               >
-                <span>{conversation.participants.find(p => p.id !== parseInt(localStorage.getItem("userId"))).username}</span>
+                <span>
+                  {
+                    conversation.participants.find(
+                      (p) => p.email !== localStorage.getItem("email")
+                    ).username
+                  }
+                </span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -203,7 +267,15 @@ export default function ChatPage() {
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`self-${msg.senderId === 1 ? 'end' : 'start'} max-w-xs p-2 ${msg.senderId === 1 ? 'bg-blue-700 text-white' : 'bg-[#002a54]'} rounded-lg`}
+                className={`self-${
+                  msg.senderEmail === localStorage.getItem("email")
+                    ? "end"
+                    : "start"
+                } max-w-xs p-2 ${
+                  msg.senderEmail === localStorage.getItem("email")
+                    ? "bg-blue-700 text-white"
+                    : "bg-[#002a54]"
+                } rounded-lg`}
               >
                 {msg.content}
               </div>

@@ -1,6 +1,6 @@
+import PageTransition from "../components/PageTransition";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import PageTransition from "../components/PageTransition";
 import "../styles/globals.css";
 
 const geistSans = localFont({

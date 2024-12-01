@@ -44,7 +44,7 @@ export default function LoginPage() {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("userId", data.userId);
-      console.log(data.userId);
+      localStorage.setItem("email", email);
       router.push("/chat");
     } catch (error) {
       console.error("Login error:", error);

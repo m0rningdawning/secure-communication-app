@@ -1,9 +1,9 @@
 "use client";
 
+import { generateKeyPair } from "@/lib/cryptoUtils";
 import { useRouter } from "next/navigation";
 import { useState, FormEvent, useEffect } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { generateKeyPair } from "@/lib/cryptoUtils";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState<string>("");
