@@ -56,6 +56,7 @@ export default function RegisterPage() {
 
       if (response.ok) {
         localStorage.setItem("privateKey", privateKey);
+        downloadPrivateKey(privateKey);
         setSuccessMessage("Registration successful! Redirecting to login...");
         setErrorMessage(null);
 
@@ -73,6 +74,15 @@ export default function RegisterPage() {
         "An error occurred during registration. Please try again."
       );
     }
+  };
+
+  const downloadPrivateKey = (privateKey: string) => {
+    const element = document.createElement("a");
+    const file = new Blob([privateKey], { type: "text/plain" });
+    element.href = URL.createObjectURL(file);
+    element.download = `privateKey_${userName}.txt`;
+    document.body.appendChild(element);
+    element.click();
   };
 
   return (
@@ -117,7 +127,6 @@ export default function RegisterPage() {
               required
             />
           </div>
-
           <div className="mb-4 relative">
             <label
               htmlFor="password"

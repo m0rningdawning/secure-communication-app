@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [privateKey, setPrivateKey] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +24,11 @@ export default function LoginPage() {
 
     if (!email || !password) {
       setErrorMessage("Please enter both email and password.");
+      return;
+    }
+
+    if (!privateKey) {
+      setErrorMessage("Please upload your private key file.");
       return;
     }
 
@@ -45,10 +51,24 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("userId", data.userId);
       localStorage.setItem("email", email);
+      localStorage.setItem("privateKey", privateKey);
       router.push("/chat");
     } catch (error) {
       console.error("Login error:", error);
       setErrorMessage("An unexpected error occurred. Please try again.");
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const privateKey = event.target?.result as string;
+        setPrivateKey(privateKey);
+        alert("Private key loaded successfully.");
+      };
+      reader.readAsText(file);
     }
   };
 
@@ -117,6 +137,21 @@ export default function LoginPage() {
             Login
           </button>
         </form>
+
+        <div className="mt-4">
+          <label
+            htmlFor="privateKeyFile"
+            className="block text-sm font-medium text-[#ededed]"
+          >
+            Upload Private Key
+          </label>
+          <input
+            type="file"
+            id="privateKeyFile"
+            onChange={handleFileUpload}
+            className="mt-1 block w-full text-[#2b2d31] border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+          />
+        </div>
 
         <p className="text-sm text-center text-[#ededed] mt-7">
           Don&apos;t have an account?{" "}

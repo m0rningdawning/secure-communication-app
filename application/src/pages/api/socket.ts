@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Server } from "socket.io";
+import { Server as SocketIOServer } from "socket.io";
 
 export const config = {
   api: {
@@ -27,22 +27,15 @@ export default function SocketHandler(
     return;
   }
 
-  console.log("Starting WebSocket server on port 3000...");
+  console.log("Starting WebSocket server on port 8888...");
 
-  // const io = new SocketIOServer({
-  //   path: "/api/socket",
-  //   cors: {
-  //     origin: "localhost:3000",
-  //     methods: ["GET", "POST"],
-  //   },
-  // })
-  const io = new Server(res.socket.server, {
+  const io = new SocketIOServer({
     path: "/api/socket",
     cors: {
       origin: "http://localhost:3000",
       methods: ["GET", "POST"],
     },
-  });
+  }).listen(8888);
 
   const onlineUsers = new Map<string, string>();
 
@@ -59,6 +52,16 @@ export default function SocketHandler(
       "sendMessage",
       async ({ conversationId, message, senderId, recipientEmail }) => {
         try {
+          const conversation = await prisma.conversation.findUnique({
+            where: { id: conversationId },
+            include: { participants: true },
+          });
+
+          if (!conversation) {
+            socket.emit("error", { message: "Conversation not found" });
+            return;
+          }
+
           const recipient = await prisma.user.findUnique({
             where: { email: recipientEmail },
           });
@@ -68,12 +71,11 @@ export default function SocketHandler(
             return;
           }
 
-          const encryptedMessage = message;
           const newMessage = await prisma.message.create({
             data: {
               senderId,
               receiverId: recipient.id,
-              content: encryptedMessage,
+              content: message,
               conversationId,
             },
           });
@@ -103,39 +105,3 @@ export default function SocketHandler(
   res.socket.server.io = io;
   res.status(201).json({ success: true, message: "WebSocket server started" });
 }
-
-// import { Server } from "socket.io";
-// import { NextApiRequest, NextApiResponse } from "next";
-
-// export const config = {
-//   api: {
-//     bodyParser: false,
-//   },
-// };
-
-// export default function handler(req: NextApiRequest, res: NextApiResponse) {
-//   if (!res.socket.server.io) {
-//     const io = new Server(res.socket.server, {
-//       path: "/api/socket",
-//       cors: {
-//         origin: "http://localhost:3000",
-//         methods: ["GET", "POST"],
-//       },
-//     });
-
-//     io.on("connection", (socket) => {
-//       console.log("A user connected:", socket.id);
-
-//       socket.on("join", (email) => {
-//         console.log(`${email} joined the chat`);
-//       });
-
-//       socket.on("disconnect", () => {
-//         console.log("A user disconnected:", socket.id);
-//       });
-//     });
-
-//     res.socket.server.io = io;
-//   }
-//   res.end();
-// }

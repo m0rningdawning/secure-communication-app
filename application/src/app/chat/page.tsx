@@ -6,21 +6,11 @@ import { useEffect, useState } from "react";
 import { HiLogout, HiUserGroup, HiTrash } from "react-icons/hi";
 import { io } from "socket.io-client";
 
-const socket = io("localhost:3000", {
+const socket = io("http://localhost:8888", {
   path: "/api/socket",
   transports: ["websocket"],
   timeout: 30000,
 });
-
-// const PORT = 8888;
-
-// const socket = io(":3001", {
-//   path: "/api/socket",
-//   transports: ["websocket"],
-//   reconnection: true,
-//   reconnectionAttempts: 5,
-//   reconnectionDelay: 1000,
-// });
 
 export default function ChatPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -47,8 +37,21 @@ export default function ChatPage() {
       socket.emit("join", email);
     }
 
-    socket.on("receiveMessage", (message) => {
-      receiveMessage(message.content, message.senderId);
+    socket.on("receiveMessage", async (message) => {
+      try {
+        const decryptedMessage = await decryptMessage(
+          localStorage.getItem("privateKey"),
+          message.content
+        );
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { ...message, content: decryptedMessage },
+        ]);
+      } catch (error) {
+        console.error("Error receiving message:", error);
+        const userId = localStorage.getItem("userId");
+        fetchConversations(userId);
+      }
     });
 
     socket.on("connect_error", async (err) => {
@@ -69,8 +72,64 @@ export default function ChatPage() {
         },
       });
       const data = await response.json();
+
       if (response.ok) {
-        setConversations(data.conversations);
+        const privateKey = localStorage.getItem("privateKey");
+        if (!privateKey) {
+          console.error("Private key not found in localStorage");
+          return;
+        }
+
+        const decryptedConversations = await Promise.all(
+          data.conversations.map(async (conversation) => {
+            try {
+              const decryptedMessages = await Promise.all(
+                conversation.messages.map(async (message) => {
+                  try {
+                    const decryptedContent = await decryptMessage(
+                      privateKey,
+                      message.content
+                    );
+                    return { ...message, content: decryptedContent };
+                  } catch (error) {
+                    console.error(
+                      `Error decrypting message ${message.id}:`,
+                      error
+                    );
+                    return message;
+                  }
+                })
+              );
+
+              return { ...conversation, messages: decryptedMessages };
+            } catch (error) {
+              console.error(
+                `Error processing conversation ${conversation.id}:`,
+                error
+              );
+              return conversation;
+            }
+          })
+        );
+
+        setConversations((prevConversations) => {
+          const updatedConversations = decryptedConversations.reduce(
+            (acc, conversation) => {
+              const existingIndex = acc.findIndex(
+                (c) => c.id === conversation.id
+              );
+              if (existingIndex !== -1) {
+                acc[existingIndex] = conversation;
+              } else {
+                acc.push(conversation);
+              }
+              return acc;
+            },
+            [...prevConversations]
+          );
+
+          return updatedConversations;
+        });
       } else {
         console.error(data.message);
       }
@@ -161,13 +220,9 @@ export default function ChatPage() {
         recipientEmail,
       });
 
-      setMessages([
-        ...messages,
-        {
-          senderEmail: email,
-          receiverEmail: recipientEmail,
-          content: encryptedMessage,
-        },
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { senderEmail: email, receiverEmail: recipientEmail, content: message },
       ]);
     } catch (error) {
       console.error("Error encrypting message:", error);
@@ -182,8 +237,8 @@ export default function ChatPage() {
 
     try {
       const message = await decryptMessage(privateKey, encryptedMessage);
-      setMessages([
-        ...messages,
+      setMessages((prevMessages) => [
+        ...prevMessages,
         {
           senderId,
           receiverEmail: localStorage.getItem("email"),
@@ -337,14 +392,14 @@ export default function ChatPage() {
 
       {showAddRecipientModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
+          <div className="bg-[#001846] p-6 rounded-lg shadow-lg">
             <h2 className="text-lg font-semibold mb-4">Add Recipient</h2>
             <input
               type="email"
               placeholder="Recipient's email"
               value={recipientEmail}
               onChange={(e) => setRecipientEmail(e.target.value)}
-              className="w-full p-2 mb-4 border rounded-lg"
+              className="text-black w-full p-2 mb-4 border rounded-lg"
             />
             <button
               onClick={addRecipient}
