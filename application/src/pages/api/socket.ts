@@ -46,6 +46,7 @@ export default function SocketHandler(
       onlineUsers.set(email, socket.id);
       socket.join(email);
       console.log(`User with email ${email} joined.`);
+      io.emit("userOnline", email);
     });
 
     socket.on(
@@ -96,6 +97,7 @@ export default function SocketHandler(
         if (id === socket.id) {
           onlineUsers.delete(email);
           console.log(`User with email ${email} disconnected.`);
+          io.emit("userOffline", email);
           break;
         }
       }

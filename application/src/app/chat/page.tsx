@@ -23,7 +23,12 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState([]);
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [showAddRecipientModal, setShowAddRecipientModal] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(new Map());
   const router = useRouter();
+
+  useEffect(() => {
+    console.log("Connected users:", Array.from(onlineUsers.keys()));
+  }, [onlineUsers]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -59,8 +64,22 @@ export default function ChatPage() {
       await fetch("/api/socket");
     });
 
+    socket.on("userOnline", (email) => {
+      setOnlineUsers((prev) => new Map(prev).set(email, true));
+    });
+
+    socket.on("userOffline", (email) => {
+      setOnlineUsers((prev) => {
+        const updated = new Map(prev);
+        updated.delete(email);
+        return updated;
+      });
+    });
+
     return () => {
       socket.off("receiveMessage");
+      socket.off("userOnline");
+      socket.off("userOffline");
     };
   }, [router]);
 
@@ -142,6 +161,7 @@ export default function ChatPage() {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
     localStorage.removeItem("email");
+    // socket.emit("disconnect");
     router.push("/login");
   };
 
@@ -201,7 +221,7 @@ export default function ChatPage() {
   const sendMessage = async (message: string) => {
     const userId = parseInt(localStorage.getItem("userId"));
     const email = localStorage.getItem("email");
-
+    
     if (!recipientPublicKey || !currentConversationId) {
       console.error("Recipient public key or conversation ID not set");
       return;
@@ -279,6 +299,7 @@ export default function ChatPage() {
                     (p) => p.email !== localStorage.getItem("email")
                   );
                   setRecipientPublicKey(recipient.publicKey);
+                  setRecipientEmail(recipient.email);
                   setRecipientUsername(recipient.username);
                   setMessages(conversation.messages);
                 }}
@@ -289,6 +310,11 @@ export default function ChatPage() {
                       (p) => p.email !== localStorage.getItem("email")
                     ).username
                   }
+                  {onlineUsers.has(
+                    conversation.participants.find(
+                      (p) => p.email !== localStorage.getItem("email")
+                    ).email
+                  ) && <span className="text-green-500 ml-2">online</span>}
                 </span>
                 <button
                   onClick={(e) => {
