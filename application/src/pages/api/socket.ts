@@ -78,6 +78,7 @@ export default function SocketHandler(
               receiverId: recipient.id,
               content: message,
               conversationId,
+              timestamp: new Date(),
             },
           });
 

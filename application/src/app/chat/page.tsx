@@ -1,10 +1,16 @@
 "use client";
 
 import { encryptMessage, decryptMessage } from "@/lib/cryptoUtils";
+import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HiLogout, HiUserGroup, HiTrash } from "react-icons/hi";
 import { io } from "socket.io-client";
+
+// TODO
+// - Fix message allignment
+// - Fix encryption bugs
+// - Fix initial convo selection and other convo fetch bugs
 
 const socket = io("http://localhost:8888", {
   path: "/api/socket",
@@ -25,10 +31,6 @@ export default function ChatPage() {
   const [showAddRecipientModal, setShowAddRecipientModal] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Map());
   const router = useRouter();
-
-  useEffect(() => {
-    console.log("Connected users:", Array.from(onlineUsers.keys()));
-  }, [onlineUsers]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -219,9 +221,14 @@ export default function ChatPage() {
   };
 
   const sendMessage = async (message: string) => {
+    if (!message.trim()) {
+      console.error("Cannot send a blank message");
+      return;
+    }
+
     const userId = parseInt(localStorage.getItem("userId"));
     const email = localStorage.getItem("email");
-    
+
     if (!recipientPublicKey || !currentConversationId) {
       console.error("Recipient public key or conversation ID not set");
       return;
@@ -242,8 +249,14 @@ export default function ChatPage() {
 
       setMessages((prevMessages) => [
         ...prevMessages,
-        { senderEmail: email, receiverEmail: recipientEmail, content: message },
+        {
+          senderEmail: email,
+          receiverEmail: recipientEmail,
+          content: message,
+          timestamp: new Date().toISOString(),
+        },
       ]);
+      setNewMessage("");
     } catch (error) {
       console.error("Error encrypting message:", error);
     }
@@ -263,6 +276,7 @@ export default function ChatPage() {
           senderId,
           receiverEmail: localStorage.getItem("email"),
           content: message,
+          timestamp: new Date().toISOString(),
         },
       ]);
     } catch (error) {
@@ -294,6 +308,7 @@ export default function ChatPage() {
                 key={conversation.id}
                 className="p-2 bg-[#5e199b] rounded hover:bg-[#6d2aa8] cursor-pointer flex justify-between items-center"
                 onClick={() => {
+                  if (currentConversationId === conversation.id) return;
                   setCurrentConversationId(conversation.id);
                   const recipient = conversation.participants.find(
                     (p) => p.email !== localStorage.getItem("email")
@@ -354,11 +369,14 @@ export default function ChatPage() {
                     : "start"
                 } max-w-xs p-2 ${
                   msg.senderEmail === localStorage.getItem("email")
-                    ? "bg-blue-700 text-white"
+                    ? "bg-[#1942bc] text-white"
                     : "bg-[#002a54]"
                 } rounded-lg`}
               >
-                {msg.content}
+                <div>{msg.content}</div>
+                <div className="text-xs text-gray-400">
+                  {format(new Date(msg.timestamp), "p, MMM d, yyyy")}
+                </div>
               </div>
             ))}
           </div>
@@ -369,6 +387,11 @@ export default function ChatPage() {
               placeholder="Type your message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  sendMessage(newMessage);
+                }
+              }}
               className="w-full p-2 rounded-lg bg-[#00236a] focus:outline-none focus:ring focus:ring-blue-300"
             />
             <button
