@@ -93,6 +93,80 @@ export default function SocketHandler(
       }
     );
 
+    socket.on(
+      "sendFile",
+      async ({
+        conversationId,
+        file,
+        senderId,
+        senderEmail,
+        recipientEmail,
+      }) => {
+        try {
+          const conversation = await prisma.conversation.findUnique({
+            where: { id: conversationId },
+            include: { participants: true },
+          });
+
+          if (!conversation) {
+            socket.emit("error", { message: "Conversation not found" });
+            return;
+          }
+
+          const recipient = await prisma.user.findUnique({
+            where: { email: recipientEmail },
+          });
+
+          if (!recipient) {
+            socket.emit("error", { message: "Recipient not found" });
+            return;
+          }
+
+          const recipientSocketId = onlineUsers.get(recipientEmail);
+          if (recipientSocketId) {
+            io.to(recipientSocketId).emit("fileTransferRequest", {
+              file,
+              senderId,
+              senderEmail,
+            });
+          } else {
+            socket.emit("error", { message: "Recipient is not online" });
+          }
+        } catch (error) {
+          console.error("Error sending file:", error);
+          socket.emit("error", { message: "Internal server error" });
+        }
+      }
+    );
+
+    socket.on(
+      "acceptFile",
+      ({ file, senderId, recipientEmail, senderEmail }) => {
+        const senderSocketId = onlineUsers.get(senderId);
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("fileTransferAccepted", {
+            file,
+            recipientEmail,
+            senderEmail,
+          });
+        }
+      }
+    );
+
+    socket.on(
+      "declineFile",
+      ({ file, senderId, recipientEmail, senderEmail }) => {
+        const senderSocketId = onlineUsers.get(senderId);
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("fileTransferDeclined", {
+            file,
+            recipientEmail,
+            senderEmail,
+          });
+        }
+      }
+    );
+
     socket.on("disconnect", () => {
       for (const [email, id] of onlineUsers.entries()) {
         if (id === socket.id) {

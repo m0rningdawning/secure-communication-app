@@ -30,12 +30,15 @@ export default function ChatPage() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [showAddRecipientModal, setShowAddRecipientModal] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Map());
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState("Browse File");
   const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
     const email = localStorage.getItem("email");
+
     if (!token || !userId || !email) {
       router.push("/login");
     } else {
@@ -78,10 +81,30 @@ export default function ChatPage() {
       });
     });
 
+    socket.on("fileTransferRequest", ({ file, senderEmail }) => {
+      if (window.confirm(`Accept file from ${senderEmail}?`)) {
+        socket.emit("acceptFile", { file, senderEmail, recipientEmail: email });
+        const element = document.createElement("a");
+        element.href = URL.createObjectURL(
+          new Blob([file.content], { type: file.type })
+        );
+        element.download = file.name;
+        document.body.appendChild(element);
+        element.click();
+      } else {
+        socket.emit("declineFile", {
+          file,
+          senderEmail,
+          recipientEmail: email,
+        });
+      }
+    });
+
     return () => {
       socket.off("receiveMessage");
       socket.off("userOnline");
       socket.off("userOffline");
+      socket.off("fileTransferRequest");
     };
   }, [router]);
 
@@ -181,13 +204,17 @@ export default function ChatPage() {
       const data = await response.json();
       if (response.ok) {
         const recipient = data.conversation.participants.find(
-          (p) => p.email !== recipientEmail
+          (p) => p.email !== localStorage.getItem("email")
         );
         setRecipientPublicKey(recipient.publicKey);
+        setRecipientEmail(recipient.email);
         setRecipientUsername(recipient.username);
         setCurrentConversationId(data.conversation.id);
         setShowAddRecipientModal(false);
-        fetchConversations(userId);
+        setConversations((prevConversations) => [
+          ...prevConversations,
+          data.conversation,
+        ]);
       } else {
         console.error(data.message);
       }
@@ -262,26 +289,45 @@ export default function ChatPage() {
     }
   };
 
-  const receiveMessage = async (encryptedMessage: string, senderId: number) => {
-    const privateKey = localStorage.getItem("privateKey");
-    if (!privateKey) {
-      throw new Error("Private key not found");
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setSelectedFileName(file.name);
+    }
+  };
+
+  const sendFile = () => {
+    if (!selectedFile) {
+      console.error("No file selected");
+      return;
     }
 
-    try {
-      const message = await decryptMessage(privateKey, encryptedMessage);
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        {
-          senderId,
-          receiverEmail: localStorage.getItem("email"),
-          content: message,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-    } catch (error) {
-      console.error("Error decrypting message:", error);
+    const userId = parseInt(localStorage.getItem("userId"));
+    const senderEmail = localStorage.getItem("email");
+
+    if (!currentConversationId) {
+      console.error("Conversation ID not set");
+      return;
     }
+
+    const fileData = {
+      name: selectedFile.name,
+      type: selectedFile.type,
+      size: selectedFile.size,
+      content: selectedFile,
+    };
+
+    socket.emit("sendFile", {
+      conversationId: currentConversationId,
+      file: fileData,
+      senderId: userId,
+      senderEmail,
+      recipientEmail,
+    });
+
+    setSelectedFile(null);
+    setSelectedFileName("Browse File");
   };
 
   return isAuthenticated ? (
@@ -370,7 +416,7 @@ export default function ChatPage() {
                 } max-w-xs p-2 ${
                   msg.senderEmail === localStorage.getItem("email")
                     ? "bg-[#1942bc] text-white"
-                    : "bg-[#002a54]"
+                    : "bg-[#002a54] text-white"
                 } rounded-lg`}
               >
                 <div>{msg.content}</div>
@@ -400,6 +446,22 @@ export default function ChatPage() {
             >
               Send
             </button>
+            <div className="flex items-center mt-2 space-x-2">
+              <label className="flex-1 flex items-center justify-center bg-[#00236a] text-white py-2 px-4 rounded-md cursor-pointer hover:bg-[#003a8c] focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200 transform hover:scale-105 focus:scale-105">
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                {selectedFileName}
+              </label>
+              <button
+                onClick={sendFile}
+                className="bg-[#7b3fa0] text-white py-2 px-4 rounded-md hover:bg-[#8c4bb3] focus:outline-none focus:ring-2 focus:ring-purple-500 transition duration-200 transform hover:scale-105 focus:scale-105"
+              >
+                Send File
+              </button>
+            </div>
           </div>
         </main>
       </div>
